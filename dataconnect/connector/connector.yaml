@@ -1,0 +1,4 @@
+connectorId: "default"
+generate:
+  javascriptSdk:
+    outputDir: "../generated"

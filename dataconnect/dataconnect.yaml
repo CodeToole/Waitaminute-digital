@@ -1,0 +1,4 @@
+kind: "dataconnect"
+location: "us-central1"
+serviceId: "waitaminutedigital-agency"
+connectorDirs: ["connector"]
