@@ -47,55 +47,52 @@ const LeadModal: React.FC = () => {
           <p className="text-gray-400 text-sm">Provide your business telemetry. We'll analyze your digital bottlenecks.</p>
         </div>
 
-        <form
-          onSubmit={async (e: any) => {
-            e.preventDefault();
+        <div className="space-y-4 relative z-10">
+          <input id="lead-name" type="text" placeholder="COMMANDER NAME" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+          <input id="lead-email" type="email" placeholder="COMM LINK / EMAIL" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+          <textarea id="lead-scope" placeholder="PROJECT SCOPE" required rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"></textarea>
 
-            // 1. Immediately change button text to show it's working
-            const btn = document.getElementById('transmit-btn');
-            if (btn) btn.innerText = 'Transmitting...';
-
-            try {
-              // 2. Attempt the Firebase Writes (Ensure your db is imported at the top of App.tsx)
-              await addDoc(collection(db, 'leads'), {
-                name: e.target.name.value,
-                email: e.target.email.value,
-                scope: e.target.scope.value,
-                timestamp: new Date()
-              });
-
-              await addDoc(collection(db, 'mail'), {
-                to: 'waitaminutedigital.social@gmail.com',
-                message: {
-                  subject: '🔥 NEW WaaS LEAD: ' + e.target.name.value,
-                  html: 'Name: ' + e.target.name.value + '<br>Email: ' + e.target.email.value + '<br>Scope: ' + e.target.scope.value
-                }
-              });
-            } catch (error) {
-              // 3. If Firebase fails, we DO NOT CARE. Log it and keep moving.
-              console.error("Firebase bypassed:", error);
-            } finally {
-              // 4. THE TELEPORT (This executes no matter what)
-              if (btn) btn.innerText = 'Redirecting to Calendar...';
-              window.location.href = 'https://calendar.app.google/YQ9z17s9n56J9GwL9';
-            }
-          }}
-          className="space-y-4"
-        >
-          <input type="text" name="name" placeholder="COMMANDER NAME" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-          <input type="email" name="email" placeholder="COMM LINK / EMAIL" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-          <textarea name="scope" placeholder="PROJECT SCOPE" required rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"></textarea>
-
-          {/* The formNoValidate attribute forces the browser to ignore native validation errors that might be silently blocking the form */}
           <button
             id="transmit-btn"
-            type="submit"
-            formNoValidate
-            className="w-full mt-4 font-black uppercase text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] bg-white text-black hover:bg-purple-500 hover:text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]"
+            type="button"
+            className="w-full mt-4 font-black uppercase text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] bg-white text-black hover:bg-purple-500 hover:text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] relative z-50 pointer-events-auto"
+            onClick={async () => {
+              const btn = document.getElementById('transmit-btn');
+              if (btn) btn.innerText = 'Processing...';
+
+              const nameInput = document.getElementById('lead-name') as HTMLInputElement;
+              const emailInput = document.getElementById('lead-email') as HTMLInputElement;
+              const scopeInput = document.getElementById('lead-scope') as HTMLTextAreaElement;
+
+              const nameVal = nameInput ? nameInput.value : '';
+              const emailVal = emailInput ? emailInput.value : '';
+              const scopeVal = scopeInput ? scopeInput.value : '';
+
+              try {
+                await addDoc(collection(db, 'leads'), {
+                  name: nameVal,
+                  email: emailVal,
+                  scope: scopeVal,
+                  timestamp: new Date()
+                });
+
+                await addDoc(collection(db, 'mail'), {
+                  to: 'waitaminutedigital.social@gmail.com',
+                  message: {
+                    subject: '🔥 NEW WaaS LEAD: ' + nameVal,
+                    html: 'Name: ' + nameVal + '<br>Email: ' + emailVal + '<br>Scope: ' + scopeVal
+                  }
+                });
+              } catch (error) {
+                console.error("Firebase bypassed:", error);
+              } finally {
+                window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+              }
+            }}
           >
-            Transmit Data
+            Submit
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
