@@ -60,6 +60,8 @@ const LeadModal: React.FC = () => {
               const btn = document.getElementById('transmit-btn');
               if (btn) btn.innerText = 'Processing...';
 
+              setTimeout(() => { window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9'); }, 2000);
+
               const nameInput = document.getElementById('lead-name') as HTMLInputElement;
               const emailInput = document.getElementById('lead-email') as HTMLInputElement;
               const scopeInput = document.getElementById('lead-scope') as HTMLTextAreaElement;
