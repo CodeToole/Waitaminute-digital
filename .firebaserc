@@ -1,5 +1,11 @@
 {
   "projects": {
-    "default": "waitaminutedigital-agency-prod"
+    "default": "waitaminutedigital-agency-2026"
+  },
+  "targets": {},
+  "etags": {
+    "waitaminutedigital-agency-2026": {
+      "extensionInstances": {}
+    }
   }
 }

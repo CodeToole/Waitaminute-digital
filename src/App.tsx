@@ -5,18 +5,21 @@ import { db } from './firebase';
 
 const LeadModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-
+  const [errors, setErrors] = useState<{ name?: string; email?: string; scope?: string }>({});
 
   useEffect(() => {
-    const handleOpen = () => setIsOpen(true);
+    const handleOpen = () => {
+      setErrors({});
+      setIsOpen(true);
+    };
     window.addEventListener('open-lead-modal', handleOpen);
     return () => window.removeEventListener('open-lead-modal', handleOpen);
   }, []);
 
   const closeModal = () => {
     setIsOpen(false);
+    setErrors({});
   };
-
 
   if (!isOpen) return null;
 
@@ -48,42 +51,86 @@ const LeadModal: React.FC = () => {
         </div>
 
         <div className="space-y-4 relative z-10">
-          <input id="lead-name" type="text" placeholder="COMMANDER NAME" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-          <input id="lead-email" type="email" placeholder="COMM LINK / EMAIL" required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-          <textarea id="lead-scope" placeholder="PROJECT SCOPE" required rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"></textarea>
+          <div>
+            <input
+              id="lead-name"
+              type="text"
+              placeholder="COMMANDER NAME"
+              className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.name ? 'border-red-500' : 'border-white/10'
+                }`}
+            />
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <input
+              id="lead-email"
+              type="email"
+              placeholder="COMM LINK / EMAIL"
+              className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.email ? 'border-red-500' : 'border-white/10'
+                }`}
+            />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          </div>
+
+          <div className="relative">
+            <select id="interest-tag" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 appearance-none cursor-pointer">
+              <option value="WaaS Engine" className="bg-[#0B0F19]">WaaS Engine</option>
+              <option value="Custom AI Architecture" className="bg-[#0B0F19]">Custom AI Architecture</option>
+              <option value="Digital Strategy" className="bg-[#0B0F19]">Digital Strategy</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+            </div>
+          </div>
+
+          <div>
+            <textarea
+              id="lead-scope"
+              placeholder="PROJECT SCOPE"
+              rows={3}
+              className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.scope ? 'border-red-500' : 'border-white/10'
+                }`}
+            ></textarea>
+            {errors.scope && <p className="text-red-500 text-xs mt-1">{errors.scope}</p>}
+          </div>
 
           <button
             id="transmit-btn"
             type="button"
             className="w-full mt-4 font-black uppercase text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] bg-white text-black hover:bg-purple-500 hover:text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] relative z-50 pointer-events-auto"
             onClick={async () => {
-              const btn = document.getElementById('transmit-btn');
-              if (btn) btn.innerText = 'Processing...';
-
-              setTimeout(() => { window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9'); }, 2000);
-
               const nameInput = document.getElementById('lead-name') as HTMLInputElement;
               const emailInput = document.getElementById('lead-email') as HTMLInputElement;
               const scopeInput = document.getElementById('lead-scope') as HTMLTextAreaElement;
 
-              const nameVal = nameInput ? nameInput.value : '';
-              const emailVal = emailInput ? emailInput.value : '';
-              const scopeVal = scopeInput ? scopeInput.value : '';
+              const nameVal = nameInput?.value.trim() ?? '';
+              const emailVal = emailInput?.value.trim() ?? '';
+              const scopeVal = scopeInput?.value.trim() ?? '';
+              const tagVal = (document.getElementById('interest-tag') as HTMLSelectElement)?.value || 'WaaS Engine';
+
+              // Validate
+              const newErrors: { name?: string; email?: string; scope?: string } = {};
+              if (!nameVal) newErrors.name = 'Name is required.';
+              if (!emailVal) newErrors.email = 'Email is required.';
+              if (!scopeVal) newErrors.scope = 'Project scope is required.';
+
+              if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                return;
+              }
+
+              setErrors({});
+              const btn = document.getElementById('transmit-btn') as HTMLButtonElement;
+              if (btn) btn.innerText = 'Processing...';
 
               try {
                 await addDoc(collection(db, 'leads'), {
                   name: nameVal,
                   email: emailVal,
                   scope: scopeVal,
+                  interestTag: tagVal,
                   timestamp: new Date()
-                });
-
-                await addDoc(collection(db, 'mail'), {
-                  to: 'waitaminutedigital.social@gmail.com',
-                  message: {
-                    subject: '🔥 NEW WaaS LEAD: ' + nameVal,
-                    html: 'Name: ' + nameVal + '<br>Email: ' + emailVal + '<br>Scope: ' + scopeVal
-                  }
                 });
               } catch (error) {
                 console.error("Firebase bypassed:", error);
@@ -106,24 +153,72 @@ const openModal = (e?: React.MouseEvent) => {
 };
 
 const App: React.FC = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-[100dvh] bg-[#0B0F19] text-white font-sans selection:bg-purple-500 overflow-x-hidden relative">
       {/* Navigation */}
-      <nav className="flex justify-between items-center px-6 md:px-12 py-6 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 bg-[#0B0F19]/50">
-        <div className="text-xl md:text-2xl font-black tracking-tighter italic">
-          WAITAMINUTE<span className="text-purple-500">.</span>DIGITAL
-        </div>
-        <div className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400 items-center">
-          <a href="#packages" className="hover:text-white transition-all">Packages</a>
-          <a href="#packages" className="hover:text-white transition-all">AI Solutions</a>
-          <a href="#packages" className="hover:text-white transition-all">eCommerce</a>
+      <nav className="sticky top-0 z-50 bg-[#0B0F19]/50 backdrop-blur-md border-b border-white/10">
+        <div className="flex justify-between items-center px-6 md:px-12 py-6">
+          <div className="text-xl md:text-2xl font-black tracking-tighter italic">
+            WAITAMINUTE<span className="text-purple-500">.</span>DIGITAL
+          </div>
+
+          {/* Desktop links */}
+          <div className="hidden md:flex gap-8 text-xs font-bold uppercase tracking-widest text-gray-400 items-center">
+            <a href="#packages" className="hover:text-white transition-all">Packages</a>
+            <a href="#solutions" className="hover:text-white transition-all">AI Solutions</a>
+            <button
+              onClick={openModal}
+              className="text-purple-400 border border-purple-400/30 px-4 py-1.5 rounded-full hover:bg-purple-400 hover:text-black transition-all"
+            >
+              Get Audit
+            </button>
+          </div>
+
+          {/* Mobile hamburger */}
           <button
-            onClick={openModal}
-            className="text-purple-400 border border-purple-400/30 px-4 py-1.5 rounded-full hover:bg-purple-400 hover:text-black transition-all"
+            className="md:hidden text-gray-400 hover:text-white transition-colors p-1"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle menu"
           >
-            Get Audit
+            {mobileMenuOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
           </button>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/10 bg-[#0B0F19] px-6 py-5 flex flex-col gap-5 text-xs font-bold uppercase tracking-widest">
+            <a
+              href="#packages"
+              className="text-gray-400 hover:text-white transition-all"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Packages
+            </a>
+            <a
+              href="#solutions"
+              className="text-gray-400 hover:text-white transition-all"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              AI Solutions
+            </a>
+            <button
+              onClick={() => { setMobileMenuOpen(false); openModal(); }}
+              className="text-left text-purple-400 border border-purple-400/30 px-4 py-2 rounded-full hover:bg-purple-400 hover:text-black transition-all w-fit"
+            >
+              Get Audit
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
@@ -187,7 +282,8 @@ const App: React.FC = () => {
           {/* Tier 1: The Digital Footprint */}
           <div className="bg-zinc-900/40 border border-white/10 rounded-3xl p-8 flex flex-col hover:bg-zinc-900/80 transition-all duration-300">
             <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">The Digital Footprint</h3>
-            <p className="text-gray-400 text-sm mb-6 h-10">Establish initial dominance. Perfect for essential local presence.</p>
+            <p className="text-gray-400 text-sm mb-2">Establish initial dominance. Perfect for essential local presence.</p>
+            <p className="text-pink-400/80 text-xs font-bold italic mb-4">Wix won't manage your Google Business Profile. We do.</p>
             <div className="mb-6">
               <span className="text-3xl font-black">$49</span><span className="text-gray-400">/mo</span>
               <div className="text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider">($150-$250 Setup)</div>
@@ -224,7 +320,8 @@ const App: React.FC = () => {
             <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
               The Production-First Engine
             </h3>
-            <p className="text-gray-400 text-sm mb-6 h-10">Deep operational integration. Engineered to convert traffic to capital.</p>
+            <p className="text-gray-400 text-sm mb-2">Deep operational integration. Engineered to convert traffic to capital.</p>
+            <p className="text-pink-400/80 text-xs font-bold italic mb-4">GoDaddy doesn't do SEO strategy. We do.</p>
             <div className="mb-6">
               <span className="text-3xl font-black">$149</span><span className="text-gray-400">/mo</span>
               <div className="text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider">($499-$750 Setup)</div>
@@ -259,7 +356,8 @@ const App: React.FC = () => {
           {/* Tier 3: The Waitaminute Growth Suite */}
           <div className="bg-zinc-900/40 border border-white/10 rounded-3xl p-8 flex flex-col hover:bg-zinc-900/80 transition-all duration-300">
             <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">The Waitaminute Growth Suite</h3>
-            <p className="text-gray-400 text-sm mb-6 h-10">Fully autonomous tech-stack. Eliminate operational bottlenecks.</p>
+            <p className="text-gray-400 text-sm mb-2">Fully autonomous tech-stack. Eliminate operational bottlenecks.</p>
+            <p className="text-pink-400/80 text-xs font-bold italic mb-4">No DIY platform automates your leads into your CRM. We do.</p>
             <div className="mb-6">
               <span className="text-3xl font-black">$299+</span><span className="text-gray-400">/mo</span>
               <div className="text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider">($1,200-$1,500 Setup)</div>
@@ -292,7 +390,7 @@ const App: React.FC = () => {
       </section>
 
       {/* Selected Masterpieces Section (Portfolio) */}
-      <section className="container mx-auto px-6 md:px-12 py-24">
+      <section id="solutions" className="container mx-auto px-6 md:px-12 py-24 scroll-mt-20">
         <div className="mb-16 text-center">
           <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 uppercase">
             Selected Masterpieces
