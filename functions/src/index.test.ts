@@ -69,6 +69,7 @@ describe("sendOnboardingEmail", () => {
     it("should successfully add a contact and send an email", async () => {
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({
                     email: "test@example.com",
                     name: "John Doe",
@@ -93,13 +94,14 @@ describe("sendOnboardingEmail", () => {
             to: "test@example.com",
             subject: "System Audit Initiated // Waitaminute Digital",
         }));
-        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully added test@example.com to audience"));
-        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email to test@example.com via Resend"));
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully added lead lead_123 to audience"));
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email to lead lead_123 via Resend"));
     });
 
     it("should use default audience ID if interestTag is not found in AUDIENCE_MAP", async () => {
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({
                     email: "test2@example.com",
                     name: "Jane Smith",
@@ -120,6 +122,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({
                     email: "test3@example.com",
                     name: "Test User",
@@ -129,7 +132,7 @@ describe("sendOnboardingEmail", () => {
 
         await (globalThis as any).documentCallback(event);
 
-        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to add test3@example.com to audience"), { message: "Contact creation failed" });
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to add lead lead_123 to audience"), { message: "Contact creation failed" });
         expect(mockEmailsSend).toHaveBeenCalledTimes(1);
     });
 
@@ -138,6 +141,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({
                     email: "test4@example.com",
                     name: "Test User",
@@ -147,7 +151,7 @@ describe("sendOnboardingEmail", () => {
 
         await (globalThis as any).documentCallback(event);
 
-        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Unexpected exception adding test4@example.com to audience"), expect.any(Error));
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Unexpected exception adding lead lead_123 to audience"), expect.any(Error));
         expect(mockEmailsSend).toHaveBeenCalledTimes(1);
     });
 
@@ -156,6 +160,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({ email: "test5@example.com" })
             }
         };
@@ -173,6 +178,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({ email: "test6@example.com" })
             }
         };
@@ -189,6 +195,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({ email: "test7@example.com" })
             }
         };
@@ -196,7 +203,7 @@ describe("sendOnboardingEmail", () => {
         await (globalThis as any).documentCallback(event);
 
         expect(mockEmailsSend).toHaveBeenCalledTimes(3); // maxRetries is 3
-        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to test7@example.com after 3 attempts."));
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to lead lead_123 after 3 attempts."));
     }, 10000); // increase timeout due to delay in retries
 
     it("should retry on unexpected exception during email send", async () => {
@@ -206,6 +213,7 @@ describe("sendOnboardingEmail", () => {
 
         const event = {
             data: {
+                id: "lead_123",
                 data: () => ({ email: "test8@example.com" })
             }
         };

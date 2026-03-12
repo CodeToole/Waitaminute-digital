@@ -49,12 +49,12 @@ export const sendOnboardingEmail = onDocumentCreated(
                 });
 
                 if (contactError) {
-                    console.error(`Failed to add ${email} to audience ${audienceId}:`, contactError);
+                    console.error(`Failed to add lead ${snapshot.id} to audience ${audienceId}:`, contactError);
                 } else {
-                    console.log(`Successfully added ${email} to audience ${audienceId}. Contact ID: ${contactData?.id}`);
+                    console.log(`Successfully added lead ${snapshot.id} to audience ${audienceId}. Contact ID: ${contactData?.id}`);
                 }
             } catch (err) {
-                console.error(`Unexpected exception adding ${email} to audience ${audienceId}:`, err);
+                console.error(`Unexpected exception adding lead ${snapshot.id} to audience ${audienceId}:`, err);
             }
         }
 
@@ -101,7 +101,7 @@ export const sendOnboardingEmail = onDocumentCreated(
                         break; // Break on 400-level errors
                     }
                 } else {
-                    console.log(`Successfully sent Day 1 onboarding email to ${email} via Resend. ID: ${data?.id}`);
+                    console.log(`Successfully sent Day 1 onboarding email to lead ${snapshot.id} via Resend. ID: ${data?.id}`);
                     success = true;
                 }
             } catch (err) {
@@ -114,7 +114,7 @@ export const sendOnboardingEmail = onDocumentCreated(
         }
 
         if (!success) {
-            console.error(`Failed to send onboarding email to ${email} after ${maxRetries} attempts.`);
+            console.error(`Failed to send onboarding email to lead ${snapshot.id} after ${maxRetries} attempts.`);
         }
     }
 );
