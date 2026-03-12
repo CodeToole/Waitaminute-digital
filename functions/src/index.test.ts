@@ -115,6 +115,26 @@ describe("sendOnboardingEmail", () => {
         }));
     });
 
+    it("should successfully add a contact without an id and send an email without an id", async () => {
+        mockContactsCreate.mockResolvedValueOnce({ data: null, error: null });
+        mockEmailsSend.mockResolvedValueOnce({ data: null, error: null });
+
+        const event = {
+            data: {
+                data: () => ({
+                    email: "test@example.com",
+                    name: "John Doe",
+                    interestTag: "WaaS Engine"
+                })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully added test@example.com to audience adaa3729-2989-4815-97d2-017605a9f810. Contact ID: undefined"));
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email to test@example.com via Resend. ID: undefined"));
+    });
+
     it("should handle error when adding contact fails, but continue to send email", async () => {
         mockContactsCreate.mockResolvedValueOnce({ data: null, error: { message: "Contact creation failed" } });
 
@@ -184,6 +204,22 @@ describe("sendOnboardingEmail", () => {
         expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email"));
     });
 
+    it("should handle error missing message and exhaust retries and fail if 500-level error persists", async () => {
+        mockEmailsSend.mockResolvedValue({ data: null, error: { name: "internal_server_error" } });
+
+        const event = {
+            data: {
+                data: () => ({ email: "test7@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(mockEmailsSend).toHaveBeenCalledTimes(3); // maxRetries is 3
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Resend 500-level error: ."));
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to test7@example.com after 3 attempts."));
+    }, 10000); // increase timeout due to delay in retries
+
     it("should exhaust retries and fail if 500-level error persists", async () => {
         mockEmailsSend.mockResolvedValue({ data: null, error: { message: "502 Bad Gateway" } });
 
@@ -216,4 +252,20 @@ describe("sendOnboardingEmail", () => {
         expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Unexpected exception during Resend API call"), expect.any(Error));
         expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email"));
     });
+
+    it("should exhaust retries and fail on unexpected exception during email send", async () => {
+        mockEmailsSend.mockRejectedValue(new Error("Network Error"));
+
+        const event = {
+            data: {
+                data: () => ({ email: "test8@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(mockEmailsSend).toHaveBeenCalledTimes(3);
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Unexpected exception during Resend API call"), expect.any(Error));
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to test8@example.com after 3 attempts."));
+    }, 10000);
 });
