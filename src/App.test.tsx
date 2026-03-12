@@ -133,7 +133,7 @@ describe('App', () => {
 
     // Verify processing state
     await waitFor(() => {
-      expect(submitBtn.innerText).toBe('Processing...');
+      expect(submitBtn).toHaveTextContent('Processing...');
     });
 
     // Since we mocked addDoc, it should have been called

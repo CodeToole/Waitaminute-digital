@@ -7,6 +7,12 @@ const LeadModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; scope?: string }>({});
 
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [scope, setScope] = useState('');
+  const [interestTag, setInterestTag] = useState('WaaS Engine');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     const handleOpen = () => {
       setErrors({});
@@ -56,6 +62,8 @@ const LeadModal: React.FC = () => {
               id="lead-name"
               type="text"
               placeholder="COMMANDER NAME"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.name ? 'border-red-500' : 'border-white/10'
                 }`}
             />
@@ -67,6 +75,8 @@ const LeadModal: React.FC = () => {
               id="lead-email"
               type="email"
               placeholder="COMM LINK / EMAIL"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.email ? 'border-red-500' : 'border-white/10'
                 }`}
             />
@@ -74,7 +84,11 @@ const LeadModal: React.FC = () => {
           </div>
 
           <div className="relative">
-            <select id="interest-tag" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 appearance-none cursor-pointer">
+            <select
+              id="interest-tag"
+              value={interestTag}
+              onChange={(e) => setInterestTag(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 appearance-none cursor-pointer">
               <option value="WaaS Engine" className="bg-[#0B0F19]">WaaS Engine</option>
               <option value="Custom AI Architecture" className="bg-[#0B0F19]">Custom AI Architecture</option>
               <option value="Digital Strategy" className="bg-[#0B0F19]">Digital Strategy</option>
@@ -89,6 +103,8 @@ const LeadModal: React.FC = () => {
               id="lead-scope"
               placeholder="PROJECT SCOPE"
               rows={3}
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
               className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 ${errors.scope ? 'border-red-500' : 'border-white/10'
                 }`}
             ></textarea>
@@ -99,15 +115,12 @@ const LeadModal: React.FC = () => {
             id="transmit-btn"
             type="button"
             className="w-full mt-4 font-black uppercase text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] bg-white text-black hover:bg-purple-500 hover:text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] relative z-50 pointer-events-auto"
+            disabled={isSubmitting}
             onClick={async () => {
-              const nameInput = document.getElementById('lead-name') as HTMLInputElement;
-              const emailInput = document.getElementById('lead-email') as HTMLInputElement;
-              const scopeInput = document.getElementById('lead-scope') as HTMLTextAreaElement;
-
-              const nameVal = nameInput?.value.trim() ?? '';
-              const emailVal = emailInput?.value.trim() ?? '';
-              const scopeVal = scopeInput?.value.trim() ?? '';
-              const tagVal = (document.getElementById('interest-tag') as HTMLSelectElement)?.value || 'WaaS Engine';
+              const nameVal = name.trim();
+              const emailVal = email.trim();
+              const scopeVal = scope.trim();
+              const tagVal = interestTag;
 
               // Validate
               const newErrors: { name?: string; email?: string; scope?: string } = {};
@@ -121,8 +134,7 @@ const LeadModal: React.FC = () => {
               }
 
               setErrors({});
-              const btn = document.getElementById('transmit-btn') as HTMLButtonElement;
-              if (btn) btn.innerText = 'Processing...';
+              setIsSubmitting(true);
 
               try {
                 await addDoc(collection(db, 'leads'), {
@@ -136,10 +148,11 @@ const LeadModal: React.FC = () => {
                 console.error("Firebase bypassed:", error);
               } finally {
                 window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+                setIsSubmitting(false);
               }
             }}
           >
-            Submit
+            {isSubmitting ? 'Processing...' : 'Submit'}
           </button>
         </div>
       </div>
