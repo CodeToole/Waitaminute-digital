@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import Spline from '@splinetool/react-spline';
+import React, { useState, useEffect, Suspense } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
+
+const Spline = React.lazy(() => import('@splinetool/react-spline'));
 
 const LeadModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -259,11 +260,13 @@ const App: React.FC = () => {
         </div>
 
         {/* Right: The 3D Robot */}
-        <div className="relative h-[450px] md:h-[600px] lg:h-[750px] w-full rounded-[2rem] overflow-hidden border border-white/10 bg-[#0a0a0a] shadow-[0_0_100px_rgba(0,0,0,1)]">
-          <Spline
-            scene="https://prod.spline.design/CAVjc9oPFRsHN1xi/scene.splinecode"
-            className="w-full h-full"
-          />
+        <div className="relative h-[450px] md:h-[600px] lg:h-[750px] w-full rounded-[2rem] overflow-hidden border border-white/10 bg-[#0a0a0a] shadow-[0_0_100px_rgba(0,0,0,1)] flex items-center justify-center">
+          <Suspense fallback={<div className="text-gray-500 animate-pulse font-bold tracking-widest text-sm uppercase">Loading 3D Engine...</div>}>
+            <Spline
+              scene="https://prod.spline.design/CAVjc9oPFRsHN1xi/scene.splinecode"
+              className="w-full h-full"
+            />
+          </Suspense>
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
         </div>
       </section>
