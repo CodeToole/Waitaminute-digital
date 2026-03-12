@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
 import { vi } from 'vitest';
+import { addDoc } from 'firebase/firestore';
 
 // Mock Firebase
 vi.mock('./firebase', () => ({
@@ -137,7 +138,57 @@ describe('App', () => {
     });
 
     // Since we mocked addDoc, it should have been called
-    // But testing the internals of the submit handler is tricky without mocking the db fully
-    // We are at least covering the DOM interaction
+    await waitFor(() => {
+      expect(addDoc).toHaveBeenCalled();
+    });
+
+    // Verify it redirects
+    await waitFor(() => {
+      expect(window.location.assign).toHaveBeenCalledWith('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+    });
+  });
+
+  it('handles lead form submission error gracefully', async () => {
+    // Mock console.error to track calls and avoid cluttering test output
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Force addDoc to throw an error
+    const testError = new Error('Firebase connection failed');
+    (addDoc as vi.Mock).mockRejectedValueOnce(testError);
+
+    render(<App />);
+
+    // Open modal
+    const getAuditButtons = screen.getAllByText('Get Audit');
+    fireEvent.click(getAuditButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Initiate System Audit')).toBeInTheDocument();
+    });
+
+    // Fill in data
+    const nameInput = screen.getByPlaceholderText('COMMANDER NAME');
+    const emailInput = screen.getByPlaceholderText('COMM LINK / EMAIL');
+    const scopeInput = screen.getByPlaceholderText('PROJECT SCOPE');
+
+    fireEvent.change(nameInput, { target: { value: 'Test Commander' } });
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(scopeInput, { target: { value: 'Test Project Scope' } });
+
+    // Submit form
+    const submitBtn = screen.getByText('Submit');
+    fireEvent.click(submitBtn);
+
+    // Verify error was logged correctly
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Firebase bypassed:", testError);
+    });
+
+    // Verify it STILL redirects despite the error
+    await waitFor(() => {
+      expect(window.location.assign).toHaveBeenCalledWith('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 });
