@@ -133,8 +133,40 @@ describe("sendOnboardingEmail", () => {
         expect(mockEmailsSend).toHaveBeenCalledTimes(1);
     });
 
-    it("should handle exception when adding contact fails, but continue to send email", async () => {
-        mockContactsCreate.mockRejectedValueOnce(new Error("Unexpected exception"));
+    it("should handle Resend API error for contact creation", async () => {
+        mockContactsCreate.mockResolvedValueOnce({ data: null, error: { message: "Error" } });
+
+        const event = {
+            data: {
+                data: () => ({ email: "test-contact-error@example.com", name: "User" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(console.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to add test-contact-error@example.com to audience"),
+            { message: "Error" }
+        );
+    });
+
+    it("should handle successful contact creation with missing contactData id", async () => {
+        mockContactsCreate.mockResolvedValueOnce({ data: null, error: null });
+
+        const event = {
+            data: {
+                data: () => ({ email: "test-nodata@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully added test-nodata@example.com to audience"));
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Contact ID: undefined"));
+    });
+
+    it("should test Resend API client throwing an error during contact creation", async () => {
+        mockContactsCreate.mockRejectedValueOnce(new Error("Resend API client exception"));
 
         const event = {
             data: {
@@ -199,6 +231,37 @@ describe("sendOnboardingEmail", () => {
         expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to test7@example.com after 3 attempts."));
     }, 10000); // increase timeout due to delay in retries
 
+    it("should not retry on 400-level Resend errors without an error name or message", async () => {
+        mockEmailsSend.mockResolvedValueOnce({ data: null, error: {} });
+
+        const event = {
+            data: {
+                data: () => ({ email: "test-no-errordata@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+        expect(console.error).toHaveBeenCalledWith("Resend non-500 error:", {});
+    });
+
+    it("should handle successful email send with missing data id", async () => {
+        mockEmailsSend.mockResolvedValueOnce({ data: null, error: null });
+
+        const event = {
+            data: {
+                data: () => ({ email: "test-success-nodata@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email"));
+        expect(console.log).toHaveBeenCalledWith(expect.stringContaining("ID: undefined"));
+    });
+
     it("should retry on unexpected exception during email send", async () => {
         mockEmailsSend
             .mockRejectedValueOnce(new Error("Network Error"))
@@ -216,4 +279,19 @@ describe("sendOnboardingEmail", () => {
         expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Unexpected exception during Resend API call"), expect.any(Error));
         expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Successfully sent Day 1 onboarding email"));
     });
+
+    it("should exhaust retries and fail if unexpected exception persists", async () => {
+        mockEmailsSend.mockRejectedValue(new Error("Persistent Network Error"));
+
+        const event = {
+            data: {
+                data: () => ({ email: "test9@example.com" })
+            }
+        };
+
+        await (globalThis as any).documentCallback(event);
+
+        expect(mockEmailsSend).toHaveBeenCalledTimes(3); // maxRetries is 3
+        expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Failed to send onboarding email to test9@example.com after 3 attempts."));
+    }, 10000);
 });
