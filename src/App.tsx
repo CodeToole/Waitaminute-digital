@@ -6,11 +6,19 @@ import { db } from './firebase';
 const LeadModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; scope?: string }>({});
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     const handleOpen = () => {
       setErrors({});
+      setIsSuccess(false);
       setIsOpen(true);
+      const btn = document.getElementById('transmit-btn') as HTMLButtonElement;
+      if (btn) {
+        btn.innerText = 'Submit';
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+      }
     };
     window.addEventListener('open-lead-modal', handleOpen);
     return () => window.removeEventListener('open-lead-modal', handleOpen);
@@ -19,6 +27,7 @@ const LeadModal: React.FC = () => {
   const closeModal = () => {
     setIsOpen(false);
     setErrors({});
+    setIsSuccess(false);
   };
 
   if (!isOpen) return null;
@@ -50,7 +59,14 @@ const LeadModal: React.FC = () => {
           <p className="text-gray-400 text-sm">Provide your business telemetry. We'll analyze your digital bottlenecks.</p>
         </div>
 
-        <div className="space-y-4 relative z-10">
+        {isSuccess && (
+          <div className="p-4 bg-green-500/10 border border-green-500/50 rounded-xl mb-6 text-center animate-pulse">
+            <h3 className="text-lg font-black text-green-400 uppercase tracking-widest mb-1">Transmission Successful</h3>
+            <p className="text-green-300/80 text-xs text-bold">Redirecting to Calendar...</p>
+          </div>
+        )}
+
+        <div className={`space-y-4 relative z-10 ${isSuccess ? 'opacity-50 pointer-events-none' : ''}`}>
           <div>
             <input
               id="lead-name"
@@ -100,6 +116,8 @@ const LeadModal: React.FC = () => {
             type="button"
             className="w-full mt-4 font-black uppercase text-sm py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] bg-white text-black hover:bg-purple-500 hover:text-white hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] relative z-50 pointer-events-auto"
             onClick={async () => {
+              if (isSuccess) return;
+
               const nameInput = document.getElementById('lead-name') as HTMLInputElement;
               const emailInput = document.getElementById('lead-email') as HTMLInputElement;
               const scopeInput = document.getElementById('lead-scope') as HTMLTextAreaElement;
@@ -122,9 +140,26 @@ const LeadModal: React.FC = () => {
 
               setErrors({});
               const btn = document.getElementById('transmit-btn') as HTMLButtonElement;
-              if (btn) btn.innerText = 'Processing...';
+              if (btn) btn.innerText = 'PROCESSING...';
+
+              let dbWriteFinished = false;
+
+              // High-Velocity Failsafe timeout: force success if taking longer than 2s
+              const failsafeTimer = setTimeout(() => {
+                if (!dbWriteFinished) {
+                  setIsSuccess(true);
+                  if (btn) {
+                    btn.innerText = '✅ SUCCESS! REDIRECTING...';
+                    btn.style.backgroundColor = '#22c55e'; // Neon green
+                    btn.style.color = '#000000';
+                    btn.style.boxShadow = '0 0 30px rgba(34, 197, 94, 0.4)';
+                  }
+                  window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+                }
+              }, 2000);
 
               try {
+                // Save to Firestore
                 await addDoc(collection(db, 'leads'), {
                   name: nameVal,
                   email: emailVal,
@@ -132,10 +167,27 @@ const LeadModal: React.FC = () => {
                   interestTag: tagVal,
                   timestamp: new Date()
                 });
+
+                dbWriteFinished = true;
+                clearTimeout(failsafeTimer);
+
+                // 1. Immediately trigger success state
+                setIsSuccess(true);
+                if (btn) {
+                  btn.innerText = '✅ SUCCESS! REDIRECTING...';
+                  btn.style.backgroundColor = '#22c55e'; // Neon green
+                  btn.style.color = '#000000';
+                  btn.style.boxShadow = '0 0 30px rgba(34, 197, 94, 0.4)';
+                }
+
               } catch (error) {
-                console.error("Firebase bypassed:", error);
+                console.error("Firebase error:", error);
+                dbWriteFinished = true; // prevent double firing
               } finally {
-                window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+                // 3. Ensure redirect fires if it didn't hang
+                setTimeout(() => {
+                  window.location.assign('https://calendar.app.google/YQ9z17s9n56J9GwL9');
+                }, 3000);
               }
             }}
           >
